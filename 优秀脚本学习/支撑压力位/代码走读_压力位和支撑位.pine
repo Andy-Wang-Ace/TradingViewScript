@@ -167,5 +167,4 @@ get_sr_vals_old(ind)=>
             lo := cpp <= lo ? cpp : lo
             hi := cpp > lo ? cpp : hi
             numpp += 1
-    [hi, lo, numpp]  
-    
+    [hi, lo, numpp] 
