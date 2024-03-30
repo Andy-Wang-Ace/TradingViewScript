@@ -13,7 +13,7 @@ prd = input.int(defval=10, title='Pivot Period', minval=4, maxval=30, group='Set
 // 数据源选择
 ppsrc = input.string(defval='High/Low', title='Source', options=['High/Low', 'Close/Open'], group='Setup')
 
-// 最多统计的 极值点 数量
+// 最多维护的 极值点 数量
 maxnumpp = input.int(defval=20, title=' Maximum Number of Pivot', minval=5, maxval=100, group='Setup')
 // 认为极值点重合的 区间范围
 ChannelW = input.int(defval=10, title='Maximum Channel Width %', minval=1, group='Setup')
@@ -45,7 +45,15 @@ plotshape(ph and showpp, text='H', style=shape.labeldown, color=na, textcolor=co
 plotshape(pl and showpp, text='L', style=shape.labelup, color=na, textcolor=color.new(color.lime, 0), location=location.belowbar, offset=-prd)
 
 
-//calculate maximum S/R channel zone width
+// 2.2 维持maxnumpp数量的 极值点
+var pivotvals = array.new_float(0)
+if ph or pl
+    array.unshift(pivotvals, ph ? ph : pl)
+    if array.size(pivotvals) > maxnumpp  // limit the array size
+        array.pop(pivotvals)
+        log.warning("pivotvals:{0}",pivotvals)
+
+// 2.3 计算出 极值区间范围
 
 // 寻找压力支撑位的区间范围: (300天的最高价-300天的最低价)*区间宽度比例
 // 区间宽度比例越低, 则支撑压力位数量越多
@@ -53,15 +61,10 @@ prdhighest = ta.highest(300)
 prdlowest = ta.lowest(300)
 cwidth = (prdhighest - prdlowest) * ChannelW / 100
 
-log.info("prdhighest:{0}, prdlowest:{1}, cwidth:{2}",prdhighest,prdlowest,cwidth)
-var pivotvals = array.new_float(0)
+// log.info("prdhighest:{0}, prdlowest:{1}, cwidth:{2}",prdhighest,prdlowest,cwidth)
 
-// 维持maxnumpp数量的 相对最大点/最低点
-if ph or pl
-    array.unshift(pivotvals, ph ? ph : pl)
-    if array.size(pivotvals) > maxnumpp  // limit the array size
-        array.pop(pivotvals)
 
+// TODO: 学习到这里啦
 // 获取以pivotvals[ind]为基准的,处于cwidth上下区间的极点数量
 get_sr_vals(ind) =>
     float lo = array.get(pivotvals, ind)
@@ -77,12 +80,12 @@ get_sr_vals(ind) =>
             // 更新区间内的最高价和最低价
             hi := cpp > hi ? cpp : hi
             lo := cpp < lo ? cpp : lo
-            lo
     [hi, lo, numpp]
 
 var sr_up_level = array.new_float(0)
 var sr_dn_level = array.new_float(0)
 sr_strength = array.new_float(0)
+
 
 // todo: sr_strength可能是个数值内容递减的数组
 
@@ -162,6 +165,9 @@ if ph or pl
 
 
 
+
+
+
 // 原始作者的代码
 get_sr_vals_old(ind) =>
     float lo = array.get(pivotvals, ind)
@@ -176,5 +182,3 @@ get_sr_vals_old(ind) =>
             numpp += 1
             numpp
     [hi, lo, numpp]
-
-
