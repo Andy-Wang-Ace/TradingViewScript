@@ -10,7 +10,7 @@ indicator('Support Resistance - Dynamic v2', 'SR-Noodles', overlay=true)
 prd = input.int(defval=10, title='Pivot Period', minval=4, maxval=30, group='Setup')
 
 
-// 数据源原则
+// 数据源选择
 ppsrc = input.string(defval='High/Low', title='Source', options=['High/Low', 'Close/Open'], group='Setup')
 
 // 最多统计的 极值点 数量
@@ -28,14 +28,15 @@ linestyle = input.string(defval='Dashed', title='Line Style', options=['Solid', 
 linewidth = input.int(defval=2, title='Line Width', minval=1, maxval=4, group='Colors')
 resistancecolor = input.color(defval=color.red, title='Resistance Color', group='Colors')
 supportcolor = input.color(defval=color.lime, title='Support Color', group='Colors')
+Lstyle = linestyle == 'Dashed' ? line.style_dashed : linestyle == 'Solid' ? line.style_solid : line.style_dotted
 
 
 // 是否展示 极值点
 showpp = input(true, title='Show Point Points')
 
-// 2. 极值点决策
+// 2. 
 
-
+// 2.1 极值点决策 & 绘制出极值点
 float src1 = ppsrc == 'High/Low' ? high : math.max(close, open)
 float src2 = ppsrc == 'High/Low' ? low : math.min(close, open)
 float ph = ta.pivothigh(src1, prd, prd)
@@ -43,7 +44,6 @@ float pl = ta.pivotlow(src2, prd, prd)
 plotshape(ph and showpp, text='H', style=shape.labeldown, color=na, textcolor=color.new(color.red, 0), location=location.abovebar, offset=-prd)
 plotshape(pl and showpp, text='L', style=shape.labelup, color=na, textcolor=color.new(color.lime, 0), location=location.belowbar, offset=-prd)
 
-Lstyle = linestyle == 'Dashed' ? line.style_dashed : linestyle == 'Solid' ? line.style_solid : line.style_dotted
 
 //calculate maximum S/R channel zone width
 
@@ -53,6 +53,7 @@ prdhighest = ta.highest(300)
 prdlowest = ta.lowest(300)
 cwidth = (prdhighest - prdlowest) * ChannelW / 100
 
+log.info("prdhighest:{0}, prdlowest:{1}, cwidth:{2}",prdhighest,prdlowest,cwidth)
 var pivotvals = array.new_float(0)
 
 // 维持maxnumpp数量的 相对最大点/最低点
