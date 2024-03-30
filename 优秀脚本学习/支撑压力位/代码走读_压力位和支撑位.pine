@@ -10,8 +10,12 @@ ppsrc = input(defval = 'High/Low', title="Source", options = ['High/Low', 'Close
 maxnumpp = input(defval = 20, title =" Maximum Number of Pivot", minval = 5, maxval = 100, group = "Setup")
 // 认为极值点重合的 区间范围
 ChannelW = input(defval = 10, title = "Maximum Channel Width %", minval = 1, group = "Setup")
+
+// 极值点重合的区间范围内 出现多少次, 就可以认为是支撑位价格
 maxnumsr = input(defval = 5, title =" Maximum Number of S/R", minval = 1, maxval = 10, group = "Setup")
 min_strength = input(defval = 2, title =" Minimum Strength", minval = 1, maxval = 10, group = "Setup")
+
+// 绘图相关的设置
 labelloc = input(defval = 20, title = "Label Location", group = "Colors", tooltip = "Positive numbers reference future bars, negative numbers reference histical bars")
 linestyle = input(defval = 'Dashed', title = "Line Style", options = ['Solid', 'Dotted', 'Dashed'], group = "Colors")
 linewidth = input(defval = 2, title = "Line Width", minval = 1, maxval = 4, group = "Colors")
