@@ -3,7 +3,14 @@
 
 //@version=4
 study("Support Resistance - Dynamic v2", "SR-Noodles", overlay = true)
+
+// 1. 参数设置
+
+// 选择左右多少范围来判断是否是极值点
 prd = input(defval = 10, title="Pivot Period", minval = 4, maxval = 30, group = "Setup")
+
+
+// 数据源原则
 ppsrc = input(defval = 'High/Low', title="Source", options = ['High/Low', 'Close/Open'], group = "Setup")
 
 // 最多统计的 极值点 数量
@@ -22,8 +29,13 @@ linewidth = input(defval = 2, title = "Line Width", minval = 1, maxval = 4, grou
 resistancecolor = input(defval = color.red, title = "Resistance Color", type = input.color, group = "Colors")
 supportcolor = input(defval = color.lime, title = "Support Color", type = input.color, group = "Colors")
 
-// 获得所有的相对高点/地点
+
+// 是否展示 极值点
 showpp = input(true, title = "Show Point Points")
+
+// 2. 极值点决策
+
+
 float src1 =  ppsrc == 'High/Low' ? high : max(close, open)
 float src2 =  ppsrc == 'High/Low' ? low: min(close, open)
 float ph = pivothigh(src1, prd, prd)
