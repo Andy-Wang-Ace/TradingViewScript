@@ -162,13 +162,18 @@ if ph or pl
     for x = 0 to array.size(sr_up_level) > 0 ? array.size(sr_up_level) - 1 : na by 1
         float mid = math.round_to_mintick((array.get(sr_up_level, x) + array.get(sr_dn_level, x)) / 2)
         rate = 100 * (mid - close) / close
+
+
+        log.error("high price:{0}, low price:{1}, mid price:{2}",array.get(sr_up_level, x),array.get(sr_dn_level, x),mid)
+
         // [功能]画出支撑和压力线的价格以及距离现在价格的差值
-        array.set(sr_labels, x + 1, label.new(x=bar_index + labelloc, y=mid, text=str.tostring(mid) + '(' + str.tostring(rate, '#.##') + '%)', color=mid >= close ? color.red : color.lime, textcolor=mid >= close ? color.white : color.black, style=mid >= close ? label.style_label_down : label.style_label_up))
+        array.set(sr_labels, x + 1, label.new(x=bar_index + labelloc, y=mid, text=str.tostring(mid) + '(' + str.tostring(rate, '#.##') + '%), high price:'+str.tostring(array.get(sr_up_level, x))+', low price:'+ str.tostring(array.get(sr_dn_level, x)), color=mid >= close ? color.red : color.lime, textcolor=mid >= close ? color.white : color.black, style=mid >= close ? label.style_label_down : label.style_label_up))
 
         //  [功能]画线
         array.set(sr_lines, x + 1, line.new(x1=bar_index, y1=mid, x2=bar_index - 1, y2=mid, extend=extend.both, color=mid >= close ? resistancecolor : supportcolor, style=Lstyle, width=linewidth))
 
-
+// todo: 每次打印的时候, 需要将 关键位的上下区间也给展示出来
+// array.set(sr_labels, x + 1, label.new(x=bar_index + labelloc, y=mid, text=str.tostring(mid) + '(' + str.tostring(rate, '#.##') + '%), high price:'+str.tostring(array.get(sr_up_level, x))+', low price:'+ str.tostring(array.get(sr_dn_level, x)), color=mid >= close ? color.red : color.lime, textcolor=mid >= close ? color.white : color.black, style=mid >= close ? label.style_label_down : label.style_label_up))
 
 
 
