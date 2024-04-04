@@ -45,7 +45,7 @@ plotshape(ph and showpp, text='H', style=shape.labeldown, color=na, textcolor=co
 plotshape(pl and showpp, text='L', style=shape.labelup, color=na, textcolor=color.new(color.lime, 0), location=location.belowbar, offset=-prd)
 
 
-// 2.2 维持maxnumpp数量的 极值点
+// 2.2 维持maxnumpp数量的 极值点 (不同柱子之间,持续维护,先进先出的方式进行维护)
 var pivotvals = array.new_float(0)
 if ph or pl
     array.unshift(pivotvals, ph ? ph : pl)
@@ -59,13 +59,13 @@ if ph or pl
 // 区间宽度比例越低, 则支撑压力位数量越多
 prdhighest = ta.highest(300)
 prdlowest = ta.lowest(300)
-cwidth = (prdhighest - prdlowest) * ChannelW / 100
+cwidth = (prdhighest - prdlowest) * ( ChannelW / 100 ) 
 
 // log.info("prdhighest:{0}, prdlowest:{1}, cwidth:{2}",prdhighest,prdlowest,cwidth)
 
 
 // TODO: 学习到这里啦
-// 获取以pivotvals[ind]为基准的,处于cwidth上下区间的极点数量
+// 获取以pivotvals[ind]为基准的,处于cwidth上下区间的极点数量,以及极值的最小值和最大值
 get_sr_vals(ind) =>
     float lo = array.get(pivotvals, ind)
     float hi = lo
@@ -84,10 +84,11 @@ get_sr_vals(ind) =>
 
 var sr_up_level = array.new_float(0)
 var sr_dn_level = array.new_float(0)
+
 sr_strength = array.new_float(0)
 
 
-// todo: sr_strength可能是个数值内容递减的数组
+// todo: sr_strength可能是个数值内容递减的数组, 应该是每个柱子都会重新进行创建
 
 // 查找到递减数组中,可以插入strength的数组下标
 find_loc(strength) =>
@@ -99,6 +100,7 @@ find_loc(strength) =>
         ret
     ret
 
+// 检查一个给定的支撑或阻力区间（由最高价hi和最低价lo界定）是否与已存在的支撑或阻力线冲突，并决定是否需要更新这些线。
 check_sr(hi, lo, strength) =>
     ret = true
     for i = 0 to array.size(sr_up_level) > 0 ? array.size(sr_up_level) - 1 : na by 1
@@ -136,15 +138,18 @@ if ph or pl
     array.clear(sr_strength)
     //find S/R zones
     for x = 0 to array.size(pivotvals) - 1 by 1
+        // 1. 计算以每个极值点为基准下, 处于cwidth上下区间的极点数量
         [hi, lo, strength] = get_sr_vals(x)
+        // 2. 满足特定条件的话, 进行 关键位的更新
         if check_sr(hi, lo, strength)
             loc = find_loc(strength)
             // if strength is in first maxnumsr sr then insert it to the arrays 
-            if loc < maxnumsr and strength >= min_strength
+            if strength >= min_strength and loc < maxnumsr
+                // 符合要求, 则作为关键位
                 array.insert(sr_strength, loc, strength)
                 array.insert(sr_up_level, loc, hi)
                 array.insert(sr_dn_level, loc, lo)
-                // keep size of the arrays = 5
+                // 如果关键位的数量 超过的最大分析的数量, 则将队尾(最小的支撑点位 的关键位给剔除掉)
                 if array.size(sr_strength) > maxnumsr
                     array.pop(sr_strength)
                     array.pop(sr_up_level)
