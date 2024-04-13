@@ -118,17 +118,46 @@ check_sr(hi, lo, strength) =>
     ret
 
 var sr_lines = array.new_line(11, na)
+var sr_up_lines = array.new_line(11, na)
+var sr_down_lines = array.new_line(11, na)
 var sr_labels = array.new_label(11, na)
+var sr_up_labels = array.new_label(11, na)
+var sr_down_labels = array.new_label(11, na)
 
 // 当前是非ph或者pl时候,更新距离支撑线或者压力线的颜色以及价差
 for x = 1 to 10 by 1
+    // mid-备注
     rate = 100 * (label.get_y(array.get(sr_labels, x)) - close) / close
-    label.set_text(array.get(sr_labels, x), text=str.tostring(label.get_y(array.get(sr_labels, x))) + '(' + str.tostring(rate, '#.##') + '%)')
+    label.set_text(array.get(sr_labels, x), text="Mid:" + str.tostring(label.get_y(array.get(sr_labels, x))) + '(' + str.tostring(rate, '#.##') + '%)')
     label.set_x(array.get(sr_labels, x), x=bar_index + labelloc)
     label.set_color(array.get(sr_labels, x), color=label.get_y(array.get(sr_labels, x)) >= close ? color.red : color.lime)
     label.set_textcolor(array.get(sr_labels, x), textcolor=label.get_y(array.get(sr_labels, x)) >= close ? color.white : color.black)
     label.set_style(array.get(sr_labels, x), style=label.get_y(array.get(sr_labels, x)) >= close ? label.style_label_down : label.style_label_up)
+    
+    // mid-线
     line.set_color(array.get(sr_lines, x), color=line.get_y1(array.get(sr_lines, x)) >= close ? resistancecolor : supportcolor)
+    
+    // up-备注
+    upRate = 100 * (label.get_y(array.get(sr_up_labels, x)) - close) / close
+    label.set_text(array.get(sr_up_labels, x), text="High:" + str.tostring(label.get_y(array.get(sr_up_labels, x))) + '(' + str.tostring(upRate, '#.##') + '%)')
+    label.set_x(array.get(sr_up_labels, x), x=bar_index + labelloc - 30)
+    label.set_color(array.get(sr_up_labels, x), color.silver)
+    label.set_textcolor(array.get(sr_up_labels, x), textcolor=label.get_y(array.get(sr_up_labels, x)) >= close ? color.white : color.black)
+    label.set_style(array.get(sr_up_labels, x), style=label.get_y(array.get(sr_up_labels, x)) >= close ? label.style_label_down : label.style_label_up)
+
+    // up-线
+    line.set_color(array.get(sr_up_lines, x), color=color.blue)
+
+    // down-备注
+    downRate = 100 * (label.get_y(array.get(sr_down_labels, x)) - close) / close
+    label.set_text(array.get(sr_down_labels, x), text="Low:" + str.tostring(label.get_y(array.get(sr_down_labels, x))) + '(' + str.tostring(downRate, '#.##') + '%)')
+    label.set_x(array.get(sr_down_labels, x), x=bar_index + labelloc + 30)
+    label.set_color(array.get(sr_down_labels, x), #e7b8f0)
+    label.set_textcolor(array.get(sr_down_labels, x), textcolor=label.get_y(array.get(sr_down_labels, x)) >= close ? color.white : color.black)
+    label.set_style(array.get(sr_down_labels, x), style=label.get_y(array.get(sr_down_labels, x)) >= close ? label.style_label_down : label.style_label_up)
+
+    // down-线
+    line.set_color(array.get(sr_down_lines, x), color=color.blue)
 
 
 if ph or pl
@@ -157,7 +186,11 @@ if ph or pl
 
     for x = 1 to 10 by 1
         line.delete(array.get(sr_lines, x))
+        line.delete(array.get(sr_up_lines, x))
+        line.delete(array.get(sr_down_lines, x))
         label.delete(array.get(sr_labels, x))
+        label.delete(array.get(sr_up_labels, x))
+        label.delete(array.get(sr_down_labels, x))
 
     for x = 0 to array.size(sr_up_level) > 0 ? array.size(sr_up_level) - 1 : na by 1
         float mid = math.round_to_mintick((array.get(sr_up_level, x) + array.get(sr_dn_level, x)) / 2)
@@ -166,29 +199,29 @@ if ph or pl
 
         log.error("high price:{0}, low price:{1}, mid price:{2}",array.get(sr_up_level, x),array.get(sr_dn_level, x),mid)
 
-        // [功能]画出支撑和压力线的价格以及距离现在价格的差值
-        array.set(sr_labels, x + 1, label.new(x=bar_index + labelloc, y=mid, text=str.tostring(mid) + '(' + str.tostring(rate, '#.##') + '%), high price:'+str.tostring(array.get(sr_up_level, x))+', low price:'+ str.tostring(array.get(sr_dn_level, x)), color=mid >= close ? color.red : color.lime, textcolor=mid >= close ? color.white : color.black, style=mid >= close ? label.style_label_down : label.style_label_up))
+        // 画出支撑和压力线的价格以及距离现在价格的差值
+        // [功能]画出备注
+        array.set(sr_labels, x + 1, label.new(x=bar_index + labelloc, y=mid, text="Mid:" + str.tostring(mid) + '(' + str.tostring(rate, '#.##') + '%)', color=mid >= close ? color.red : color.lime, textcolor=mid >= close ? color.white : color.black, style=mid >= close ? label.style_label_down : label.style_label_up))
 
         //  [功能]画线
         array.set(sr_lines, x + 1, line.new(x1=bar_index, y1=mid, x2=bar_index - 1, y2=mid, extend=extend.both, color=mid >= close ? resistancecolor : supportcolor, style=Lstyle, width=linewidth))
 
+        // 画出上支撑位
+
+        upLevel = array.get(sr_up_level, x)
+        upRate = 100 * ( upLevel - close) / close
+        //  [功能]画线
+        array.set(sr_up_lines, x + 1, line.new(x1=bar_index, y1=array.get(sr_up_level, x), x2=bar_index - 1, y2=array.get(sr_up_level, x), extend=extend.both, color=color.blue, style=line.style_dotted, width=2))
+        //  [功能]画出备注
+        array.set(sr_up_labels, x + 1, label.new(x=bar_index + labelloc, y=upLevel, text="Low:" + str.tostring(upRate) + '(' + str.tostring(upRate, '#.##') + '%)', color=color.silver, textcolor=upLevel >= close ? color.white : color.black, style=upLevel >= close ? label.style_label_down : label.style_label_up))
+
+        // 画出下支撑位
+        downLevel = array.get(sr_dn_level, x)
+        downRate = 100 * ( downLevel - close) / close
+        //  [功能]画线
+        array.set(sr_down_lines, x + 1, line.new(x1=bar_index, y1=array.get(sr_dn_level, x), x2=bar_index - 1, y2=array.get(sr_dn_level, x), extend=extend.both, color=color.blue, style=line.style_dotted, width=2))
+        //  [功能]画出备注
+        array.set(sr_down_labels, x + 1, label.new(x=bar_index + labelloc, y=downLevel, text="High:" + str.tostring(downRate) + '(' + str.tostring(downRate, '#.##') + '%)', color=#e7b8f0, textcolor=downLevel >= close ? color.white : color.black, style=downLevel >= close ? label.style_label_down : label.style_label_up))
+
 // todo: 每次打印的时候, 需要将 关键位的上下区间也给展示出来
 // array.set(sr_labels, x + 1, label.new(x=bar_index + labelloc, y=mid, text=str.tostring(mid) + '(' + str.tostring(rate, '#.##') + '%), high price:'+str.tostring(array.get(sr_up_level, x))+', low price:'+ str.tostring(array.get(sr_dn_level, x)), color=mid >= close ? color.red : color.lime, textcolor=mid >= close ? color.white : color.black, style=mid >= close ? label.style_label_down : label.style_label_up))
-
-
-
-
-// 原始作者的代码
-get_sr_vals_old(ind) =>
-    float lo = array.get(pivotvals, ind)
-    float hi = lo
-    int numpp = 0
-    for y = 0 to array.size(pivotvals) - 1 by 1
-        float cpp = array.get(pivotvals, y)
-        float wdth = cpp <= lo ? hi - cpp : cpp - lo
-        if wdth <= cwidth  // fits the max channel width?
-            lo := cpp <= lo ? cpp : lo
-            hi := cpp > lo ? cpp : hi
-            numpp += 1
-            numpp
-    [hi, lo, numpp]
