@@ -24,7 +24,7 @@ maxnumsr = input.int(defval=5, title=' Maximum Number of S/R', minval=1, maxval=
 min_strength = input.int(defval=3, title=' Minimum Strength', minval=1, maxval=10, group='Setup')
 
 // 绘图相关的设置
-labelloc = input.int(defval=12, title='Label Location', group='Colors', tooltip='Positive numbers reference future bars, negative numbers reference histical bars')
+labelloc = input.int(defval=25, title='Label Location', group='Colors', tooltip='Positive numbers reference future bars, negative numbers reference histical bars')
 linestyle = input.string(defval='Dashed', title='Line Style', options=['Solid', 'Dotted', 'Dashed'], group='Colors')
 linewidth = input.int(defval=2, title='Line Width', minval=1, maxval=4, group='Colors')
 resistancecolor = input.color(defval=color.red, title='Resistance Color', group='Colors')
@@ -67,7 +67,6 @@ cwidth = (prdhighest - prdlowest) * ( ChannelW / 100 )
 // log.info("prdhighest:{0}, prdlowest:{1}, cwidth:{2}",prdhighest,prdlowest,cwidth)
 
 
-// TODO: 学习到这里啦
 // 获取以pivotvals[ind]为基准的,处于cwidth上下区间的极点数量,以及极值的最小值和最大值
 get_sr_vals(ind) =>
     float lo = array.get(pivotvals, ind)
@@ -132,11 +131,14 @@ var sr_down_labels = array.new_label(11, na)
 // 当前是非ph或者pl时候,更新距离支撑线或者压力线的颜色以及价差
 
 
+// for x = 0 to array.size(sr_labels) > 0 and array.size(sr_strength) > 0  ? array.size(sr_labels) - 1 : na by 1
 for x = 0 to array.size(sr_labels) > 0 ? array.size(sr_labels) - 1 : na by 1
     if showMidLevel
+        // log.error("sr_labels:{0},sr_strength:{1}",pivotvals,sr_strength)
         // mid-备注
         rate = 100 * (label.get_y(array.get(sr_labels, x)) - close) / close
         label.set_text(array.get(sr_labels, x), text=str.tostring(label.get_y(array.get(sr_labels, x))) + '(' + str.tostring(rate, '#.##') + '%)')
+        //label.set_text(array.get(sr_labels, x), text= str.tostring(label.get_y(array.get(sr_labels, x))) + '(' + str.tostring(rate, '#.##') + '%, ' + str.tostring(array.get(sr_strength, x)) + ' count)' )
         label.set_x(array.get(sr_labels, x), x=bar_index + labelloc * x)
         label.set_color(array.get(sr_labels, x), color=label.get_y(array.get(sr_labels, x)) >= close ? color.red : color.lime)
         label.set_textcolor(array.get(sr_labels, x), textcolor=label.get_y(array.get(sr_labels, x)) >= close ? color.white : color.black)
@@ -214,7 +216,7 @@ if ph or pl
             rate = 100 * (mid - close) / close
             // [功能]画出备注
             array.set(sr_labels, x + 1, label.new(x=bar_index + labelloc * x, y=mid, text=str.tostring(mid) + '(' + str.tostring(rate, '#.##') + '%)', color=mid >= close ? color.red : color.lime, textcolor=mid >= close ? color.white : color.black, style=label.style_label_center))
-
+            //array.set(sr_labels, x + 1, label.new(x=bar_index + labelloc * x, y=mid, text=str.tostring(mid) + '(' + str.tostring(rate, '#.##') + '%, ' + str.tostring(array.get(sr_strength, x)) + ' count)', color=mid >= close ? color.red : color.lime, textcolor=mid >= close ? color.white : color.black, style=label.style_label_center))
             //  [功能]画线
             array.set(sr_lines, x + 1, line.new(x1=bar_index, y1=mid, x2=bar_index - 1, y2=mid, extend=extend.both, color=mid >= close ? resistancecolor : supportcolor, style=Lstyle, width=linewidth))
 
