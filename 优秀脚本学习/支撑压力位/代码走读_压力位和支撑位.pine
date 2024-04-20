@@ -88,7 +88,7 @@ var sr_dn_level = array.new_float(0)
 sr_strength = array.new_float(0)
 
 
-// todo: sr_strength可能是个数值内容递减的数组, 应该是每个柱子都会重新进行创建
+// todo: sr_strength 应该是每个柱子都会重新进行创建
 
 // 查找到递减数组中,可以插入strength的数组下标
 find_loc(strength) =>
@@ -100,7 +100,9 @@ find_loc(strength) =>
         ret
     ret
 
-// 检查一个给定的支撑或阻力区间（由最高价hi和最低价lo界定）是否与已存在的支撑或阻力线冲突，并决定是否需要更新这些线。
+// 检查一个给定的支撑或阻力区间（由最高价hi和最低价lo界定）是否与已存在的 关键价格区间 存在重叠. 
+// 如果存在重叠的话, 判断哪个强度更强. 如果当前强度更强, 则直接删除老的关键价格区间.如果当前强度更弱, 则不调整支撑压力位区间. 只要存在重叠, 当前循环终止(当前强度是倒排的,因此直接出现强度比较通过,则一定可以是关键区间,所以循环可以直接终止)
+// 因为: 当前区间可以加入到关键区间数组的几种场景: 1. 关键价格区间和当前区间均不重叠 2. 关键价格区间和当前区间重叠,并且当前价格区间强度更强
 check_sr(hi, lo, strength) =>
     ret = true
     for i = 0 to array.size(sr_up_level) > 0 ? array.size(sr_up_level) - 1 : na by 1
