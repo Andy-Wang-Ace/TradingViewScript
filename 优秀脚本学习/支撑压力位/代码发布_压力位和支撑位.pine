@@ -218,3 +218,29 @@ if ph or pl
             array.set(sr_down_lines, x + 1, line.new(x1=bar_index, y1=array.get(sr_dn_level, x), x2=bar_index - 1, y2=array.get(sr_dn_level, x), extend=extend.both, color=color.blue, style=line.style_dotted, width=2))
             //  [Function] Draw comments
             array.set(sr_down_labels, x + 1, label.new(x=bar_index + labelloc * ( x * 2 + 1), y=downLevel, text="High:" + str.tostring(downRate) + '(' + str.tostring(downRate, '#.##') + '%)', color=#e7b8f0, textcolor=downLevel >= close ? color.white : color.black, style=label.style_label_up))
+
+
+///// 如下是发布时候的注释
+
+///// 标题 Support Resistance - Dynamic by noodles
+
+///// 说明
+// [b]English Descirption[/b]
+// This script, titled "Support Resistance - Dynamic v2" and known as "SR-Noodles," is an enhanced version of the original work by LonesomeTheBlue. It introduces several features to increase flexibility and user control: 
+// 
+// 1. Options to display or hide the upper and lower levels, allowing users to customize their chart displays.
+// 2. The ability to show or hide the middle level, providing a clearer view of the price action and pivotal points.
+// 3. Improved readability and functionality of the check_sr function, which checks for overlaps within support and resistance zones to determine their strength and relevance.
+// 4. Extensive comments throughout the script to help users understand each part of the code and its purpose.
+// 
+// This script dynamically calculates and plots support and resistance levels based on user-defined settings, including the number of pivot points to maintain and the strength required to consider a price as a support or resistance level. It utilizes high/low or close/open data points within a defined period (prd) to identify potential pivot points, which are then evaluated to establish key price levels that can be instrumental for traders looking to make strategic entries and exits in the market.
+// 
+// [b]中文描述[/b]
+// 这个名为“Support Resistance - Dynamic v2”（动态支撑阻力 v2），简称“SR-Noodles”的脚本，是基于LonesomeTheBlue原作的增强版本。它引入了几项功能，增加了灵活性和用户控制：
+// 
+// 1. 提供显示或隐藏上层和下层级别的选项，允许用户自定义他们的图表显示。
+// 2. 能够显示或隐藏中间级别，提供对价格行动和枢轴点的更清晰视图。
+// 3. 改进了 check_sr 函数的可读性和功能性，该函数检查支持和阻力区域内的重叠，以确定它们的强度和相关性。
+// 4. 脚本中包含了大量注释，帮助用户理解代码的每个部分及其用途。
+// 
+// 该脚本基于用户定义的设置动态计算并绘制支持和阻力级别，包括维护的枢轴点数量和考虑价格为支持或阻力级别所需的强度。它利用定义周期（prd）内的高/低或收盘/开盘数据点来识别潜在的枢轴点，然后评估这些点以建立关键价格级别，这对于寻求在市场中进行策略性进出的交易者来说非常重要。
