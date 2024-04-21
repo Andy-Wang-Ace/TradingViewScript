@@ -1,0 +1,245 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// This script is based on the work by LonesomeTheBlue.
+// Original source: https://cn.tradingview.com/script/va09eWAp-Support-Resistance-Dynamic-v2/
+
+// This script enhances the original "Support Resistance - Dynamic v2"  by me by adding additional features: 
+// 1. support displaying or hiding the uppper level and down level
+// 2. support displaying or hiding the middle level
+// 3. modifing the function check_sr by rewriting more readable code
+// 4. add a lot of addtional comment to explaing the code
+
+//@version=5
+indicator('Support Resistance - Dynamic v2', 'SR-Noodles', overlay=true)
+
+// 1. 参数设置
+
+// 选择左右多少范围来判断是否是极值点
+prd = input.int(defval=10, title='Pivot Period', minval=4, maxval=30, group='Setup')
+
+
+// 数据源选择
+ppsrc = input.string(defval='High/Low', title='Source', options=['High/Low', 'Close/Open'], group='Setup')
+
+// 最多维护的 极值点 数量
+maxnumpp = input.int(defval=20, title=' Maximum Number of Pivot', minval=5, maxval=100, group='Setup')
+// 认为极值点重合的 区间范围
+ChannelW = input.int(defval=10, title='Maximum Channel Width %', minval=1, group='Setup')
+
+// 最多展示几个支撑压力位
+maxnumsr = input.int(defval=5, title=' Maximum Number of S/R', minval=1, maxval=10, group='Setup')
+// 极值点重合的区间范围内 出现多少次, 就可以认为是支撑位价格
+min_strength = input.int(defval=3, title=' Minimum Strength', minval=1, maxval=10, group='Setup')
+
+// 绘图相关的设置
+labelloc = input.int(defval=15, title='Label Location', group='Colors', tooltip='Positive numbers reference future bars, negative numbers reference histical bars')
+linestyle = input.string(defval='Dashed', title='Line Style', options=['Solid', 'Dotted', 'Dashed'], group='Colors')
+linewidth = input.int(defval=2, title='Line Width', minval=1, maxval=4, group='Colors')
+resistancecolor = input.color(defval=color.red, title='Resistance Color', group='Colors')
+supportcolor = input.color(defval=color.lime, title='Support Color', group='Colors')
+Lstyle = linestyle == 'Dashed' ? line.style_dashed : linestyle == 'Solid' ? line.style_solid : line.style_dotted
+
+
+// 是否展示 极值点
+showpp = input(true, title='Show Point Points')
+bool showLevel = input(true, title='Show Up/Down Level')
+bool showMidLevel = input(true, title='Show Mid Level')
+
+// 2. 
+
+// 2.1 极值点决策 & 绘制出极值点
+float src1 = ppsrc == 'High/Low' ? high : math.max(close, open)
+float src2 = ppsrc == 'High/Low' ? low : math.min(close, open)
+float ph = ta.pivothigh(src1, prd, prd)
+float pl = ta.pivotlow(src2, prd, prd)
+plotshape(ph and showpp, text='H', style=shape.labeldown, color=na, textcolor=color.new(color.red, 0), location=location.abovebar, offset=-prd)
+plotshape(pl and showpp, text='L', style=shape.labelup, color=na, textcolor=color.new(color.lime, 0), location=location.belowbar, offset=-prd)
+
+
+// 2.2 维持maxnumpp数量的 极值点 (不同柱子之间,持续维护,先进先出的方式进行维护)
+var pivotvals = array.new_float(0)
+if ph or pl
+    array.unshift(pivotvals, ph ? ph : pl)
+    if array.size(pivotvals) > maxnumpp  // limit the array size
+        array.pop(pivotvals)
+        log.warning("pivotvals:{0}",pivotvals)
+
+// 2.3 计算出 极值区间范围
+
+// 寻找压力支撑位的区间范围: (300天的最高价-300天的最低价)*区间宽度比例
+// 区间宽度比例越低, 则支撑压力位数量越多
+prdhighest = ta.highest(300)
+prdlowest = ta.lowest(300)
+cwidth = (prdhighest - prdlowest) * ( ChannelW / 100 ) 
+
+// log.info("prdhighest:{0}, prdlowest:{1}, cwidth:{2}",prdhighest,prdlowest,cwidth)
+
+
+// 获取以pivotvals[ind]为基准的,处于cwidth上下区间的极点数量,以及极值的最小值和最大值
+get_sr_vals(ind) =>
+    float lo = array.get(pivotvals, ind)
+    float hi = lo
+    float hiPlusCidWith = hi + cwidth
+    float loMinusCidWith = lo - cwidth
+    int numpp = 0
+    for y = 0 to array.size(pivotvals) - 1 by 1
+        float cpp = array.get(pivotvals, y)
+        if cpp >= loMinusCidWith and cpp <= hiPlusCidWith
+            // 更新极点数量
+            numpp += 1
+            // 更新区间内的最高价和最低价
+            hi := cpp > hi ? cpp : hi
+            lo := cpp < lo ? cpp : lo
+    [hi, lo, numpp]
+
+var sr_up_level = array.new_float(0)
+var sr_dn_level = array.new_float(0)
+
+sr_strength = array.new_float(0)
+
+
+// todo: sr_strength 应该是每个柱子都会重新进行创建
+
+// 查找到递减数组中,可以插入strength的数组下标
+find_loc(strength) =>
+    ret = array.size(sr_strength)
+    for i = ret > 0 ? array.size(sr_strength) - 1 : na to 0 by 1
+        if strength <= array.get(sr_strength, i)
+            break
+        ret := i
+        ret
+    ret
+
+// 检查一个给定的支撑或阻力区间（由最高价hi和最低价lo界定）是否与已存在的 关键价格区间 存在重叠. 
+// 如果存在重叠的话, 判断哪个强度更强. 如果当前强度更强, 则直接删除老的关键价格区间.如果当前强度更弱, 则不调整支撑压力位区间. 只要存在重叠, 当前循环终止(当前强度是倒排的,因此直接出现强度比较通过,则一定可以是关键区间,所以循环可以直接终止)
+// 因为: 当前区间可以加入到关键区间数组的几种场景: 1. 关键价格区间和当前区间均不重叠 2. 关键价格区间和当前区间重叠,并且当前价格区间强度更强
+check_sr(hi, lo, strength) =>
+    ret = true
+    for i = 0 to array.size(sr_up_level) > 0 ? array.size(sr_up_level) - 1 : na by 1
+        //included?
+        if array.get(sr_up_level, i) >= lo and array.get(sr_up_level, i) <= hi or array.get(sr_dn_level, i) >= lo and array.get(sr_dn_level, i) <= hi
+            if strength >= array.get(sr_strength, i)
+                array.remove(sr_strength, i)
+                array.remove(sr_up_level, i)
+                array.remove(sr_dn_level, i)
+                ret
+            else
+                ret := false
+                ret
+            break
+    ret
+
+var sr_lines = array.new_line(11, na)
+var sr_up_lines = array.new_line(11, na)
+var sr_down_lines = array.new_line(11, na)
+var sr_labels = array.new_label(11, na)
+var sr_up_labels = array.new_label(11, na)
+var sr_down_labels = array.new_label(11, na)
+
+// 当前是非ph或者pl时候,更新距离支撑线或者压力线的颜色以及价差
+
+
+// for x = 0 to array.size(sr_labels) > 0 and array.size(sr_strength) > 0  ? array.size(sr_labels) - 1 : na by 1
+for x = 0 to array.size(sr_labels) > 0 ? array.size(sr_labels) - 1 : na by 1
+    if showMidLevel
+        // log.error("sr_labels:{0},sr_strength:{1}",pivotvals,sr_strength)
+        // mid-备注
+        rate = 100 * (label.get_y(array.get(sr_labels, x)) - close) / close
+        label.set_text(array.get(sr_labels, x), text=str.tostring(label.get_y(array.get(sr_labels, x))) + '(' + str.tostring(rate, '#.##') + '%)')
+        //label.set_text(array.get(sr_labels, x), text= str.tostring(label.get_y(array.get(sr_labels, x))) + '(' + str.tostring(rate, '#.##') + '%, ' + str.tostring(array.get(sr_strength, x)) + ' count)' )
+        label.set_x(array.get(sr_labels, x), x=bar_index + labelloc * ( x * 2 + 1))
+        label.set_color(array.get(sr_labels, x), color=label.get_y(array.get(sr_labels, x)) >= close ? color.red : color.lime)
+        label.set_textcolor(array.get(sr_labels, x), textcolor=label.get_y(array.get(sr_labels, x)) >= close ? color.white : color.black)
+        label.set_style(array.get(sr_labels, x), style=label.style_label_center)
+        
+        // mid-线
+        line.set_color(array.get(sr_lines, x), color=line.get_y1(array.get(sr_lines, x)) >= close ? resistancecolor : supportcolor)
+
+for x = 0 to array.size(sr_up_labels) > 0 ? array.size(sr_up_labels) - 1 : na by 1    
+    if showLevel
+        // up-备注
+        upRate = 100 * (label.get_y(array.get(sr_up_labels, x)) - close) / close
+        label.set_text(array.get(sr_up_labels, x), text="High:" + str.tostring(label.get_y(array.get(sr_up_labels, x))) + '(' + str.tostring(upRate, '#.##') + '%)')
+        label.set_x(array.get(sr_up_labels, x), x=bar_index + labelloc * ( x * 2 + 1))
+        label.set_color(array.get(sr_up_labels, x), color.silver)
+        label.set_textcolor(array.get(sr_up_labels, x), textcolor=label.get_y(array.get(sr_up_labels, x)) >= close ? color.white : color.black)
+        label.set_style(array.get(sr_up_labels, x), style=label.style_label_down)
+
+        // up-线
+        line.set_color(array.get(sr_up_lines, x) , color=color.blue)
+
+for x = 0 to array.size(sr_down_labels) > 0 ? array.size(sr_down_labels) - 1 : na by 1    
+    if showLevel
+        // down-备注
+        downRate = 100 * (label.get_y(array.get(sr_down_labels, x)) - close) / close
+        label.set_text(array.get(sr_down_labels, x), text="Low:" + str.tostring(label.get_y(array.get(sr_down_labels, x))) + '(' + str.tostring(downRate, '#.##') + '%)')
+        label.set_x(array.get(sr_down_labels, x), x=bar_index + labelloc * ( x * 2 + 1))
+        label.set_color(array.get(sr_down_labels, x), #e7b8f0)
+        label.set_textcolor(array.get(sr_down_labels, x), textcolor=label.get_y(array.get(sr_down_labels, x)) >= close ? color.white : color.black)
+        label.set_style(array.get(sr_down_labels, x), style=label.style_label_up)
+
+        // down-线
+        line.set_color(array.get(sr_down_lines, x), color=color.blue)
+
+
+if ph or pl
+    //because of new calculation, remove old S/R levels
+    array.clear(sr_up_level)
+    array.clear(sr_dn_level)
+    array.clear(sr_strength)
+    //find S/R zones
+    for x = 0 to array.size(pivotvals) - 1 by 1
+        // 1. 计算以每个极值点为基准下, 处于cwidth上下区间的极点数量
+        [hi, lo, strength] = get_sr_vals(x)
+        // 2. 满足特定条件的话, 进行 关键位的更新
+        if check_sr(hi, lo, strength)
+            loc = find_loc(strength)
+            // if strength is in first maxnumsr sr then insert it to the arrays 
+            if strength >= min_strength and loc < maxnumsr
+                // 符合要求, 则作为关键位
+                array.insert(sr_strength, loc, strength)
+                array.insert(sr_up_level, loc, hi)
+                array.insert(sr_dn_level, loc, lo)
+                // 如果关键位的数量 超过的最大分析的数量, 则将队尾(最小的支撑点位 的关键位给剔除掉)
+                if array.size(sr_strength) > maxnumsr
+                    array.pop(sr_strength)
+                    array.pop(sr_up_level)
+                    array.pop(sr_dn_level)
+
+    for x = 0 to array.size(sr_lines) > 0 ? array.size(sr_lines) - 1 : na by 1
+        line.delete(array.get(sr_lines, x))
+        label.delete(array.get(sr_labels, x))
+    for x = 0 to array.size(sr_up_lines) > 0 ? array.size(sr_up_lines) - 1 : na by 1
+        line.delete(array.get(sr_up_lines, x))
+        label.delete(array.get(sr_up_labels, x))
+    for x = 0 to array.size(sr_down_lines) > 0 ? array.size(sr_down_lines) - 1 : na by 1
+        line.delete(array.get(sr_down_lines, x))
+        label.delete(array.get(sr_down_labels, x))    
+    
+
+    for x = 0 to array.size(sr_up_level) > 0 ? array.size(sr_up_level) - 1 : na by 1
+        if showMidLevel
+            // 画出支撑和压力线的价格以及距离现在价格的差值
+            float mid = math.round_to_mintick((array.get(sr_up_level, x) + array.get(sr_dn_level, x)) / 2)
+            rate = 100 * (mid - close) / close
+            // [功能]画出备注
+            array.set(sr_labels, x + 1, label.new(x=bar_index + labelloc * ( x * 2 + 1), y=mid, text=str.tostring(mid) + '(' + str.tostring(rate, '#.##') + '%)', color=mid >= close ? color.red : color.lime, textcolor=mid >= close ? color.white : color.black, style=label.style_label_center))
+            //array.set(sr_labels, x + 1, label.new(x=bar_index + labelloc * ( x * 2 + 1), y=mid, text=str.tostring(mid) + '(' + str.tostring(rate, '#.##') + '%, ' + str.tostring(array.get(sr_strength, x)) + ' count)', color=mid >= close ? color.red : color.lime, textcolor=mid >= close ? color.white : color.black, style=label.style_label_center))
+            //  [功能]画线
+            array.set(sr_lines, x + 1, line.new(x1=bar_index, y1=mid, x2=bar_index - 1, y2=mid, extend=extend.both, color=mid >= close ? resistancecolor : supportcolor, style=Lstyle, width=linewidth))
+
+        if showLevel
+            // 画出上支撑位
+            upLevel = array.get(sr_up_level, x)
+            upRate = 100 * ( upLevel - close) / close
+            //  [功能]画线
+            array.set(sr_up_lines, x + 1, line.new(x1=bar_index, y1=array.get(sr_up_level, x), x2=bar_index - 1, y2=array.get(sr_up_level, x), extend=extend.both, color=color.blue, style=line.style_dotted, width=2))
+            //  [功能]画出备注
+            array.set(sr_up_labels, x + 1, label.new(x=bar_index + labelloc * ( x * 2 + 1), y=upLevel, text="Low:" + str.tostring(upRate) + '(' + str.tostring(upRate, '#.##') + '%)', color=color.silver, textcolor=upLevel >= close ? color.white : color.black, style=label.style_label_down))
+        
+            // 画出下支撑位
+            downLevel = array.get(sr_dn_level, x)
+            downRate = 100 * ( downLevel - close) / close
+            //  [功能]画线
+            array.set(sr_down_lines, x + 1, line.new(x1=bar_index, y1=array.get(sr_dn_level, x), x2=bar_index - 1, y2=array.get(sr_dn_level, x), extend=extend.both, color=color.blue, style=line.style_dotted, width=2))
+            //  [功能]画出备注
+            array.set(sr_down_labels, x + 1, label.new(x=bar_index + labelloc * ( x * 2 + 1), y=downLevel, text="High:" + str.tostring(downRate) + '(' + str.tostring(downRate, '#.##') + '%)', color=#e7b8f0, textcolor=downLevel >= close ? color.white : color.black, style=label.style_label_up))
