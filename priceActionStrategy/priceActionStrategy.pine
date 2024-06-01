@@ -100,24 +100,10 @@ check_sr(hi, lo, strength) =>
             break
     ret
 
-var sr_lines = array.new_line(11, na)
 var sr_up_lines = array.new_line(11, na)
 var sr_down_lines = array.new_line(11, na)
-var sr_labels = array.new_label(11, na)
 var sr_up_labels = array.new_label(11, na)
 var sr_down_labels = array.new_label(11, na)
-
-// When it's not a ph or pl, update the distance from the support or resistance line and the price difference.
-for x = 0 to array.size(sr_labels) > 0 ? array.size(sr_labels) - 1 : na by 1
-	rate = 100 * (label.get_y(array.get(sr_labels, x)) - close) / close
-	label.set_text(array.get(sr_labels, x), text=str.tostring(label.get_y(array.get(sr_labels, x))) + '(' + str.tostring(rate, '#.##') + '%)')
-	//label.set_text(array.get(sr_labels, x), text= str.tostring(label.get_y(array.get(sr_labels, x))) + '(' + str.tostring(rate, '#.##') + '%, ' + str.tostring(array.get(sr_strength, x)) + ' count)' )
-	label.set_x(array.get(sr_labels, x), x=bar_index + labelloc * ( x * 2 + 1))
-	label.set_color(array.get(sr_labels, x), color=label.get_y(array.get(sr_labels, x)) >= close ? color.red : color.lime)
-	label.set_textcolor(array.get(sr_labels, x), textcolor=label.get_y(array.get(sr_labels, x)) >= close ? color.white : color.black)
-	label.set_style(array.get(sr_labels, x), style=label.style_label_center)
-	
-	line.set_color(array.get(sr_lines, x), color=line.get_y1(array.get(sr_lines, x)) >= close ? resistancecolor : supportcolor)
 
 for x = 0 to array.size(sr_up_labels) > 0 ? array.size(sr_up_labels) - 1 : na by 1    
 	upRate = 100 * (label.get_y(array.get(sr_up_labels, x)) - close) / close
@@ -163,9 +149,6 @@ if ph or pl
                     array.pop(sr_up_level)
                     array.pop(sr_dn_level)
 
-    for x = 0 to array.size(sr_lines) > 0 ? array.size(sr_lines) - 1 : na by 1
-        line.delete(array.get(sr_lines, x))
-        label.delete(array.get(sr_labels, x))
     for x = 0 to array.size(sr_up_lines) > 0 ? array.size(sr_up_lines) - 1 : na by 1
         line.delete(array.get(sr_up_lines, x))
         label.delete(array.get(sr_up_labels, x))
@@ -175,13 +158,6 @@ if ph or pl
     
 
     for x = 0 to array.size(sr_up_level) > 0 ? array.size(sr_up_level) - 1 : na by 1
-		// Draw the support and resistance line prices and the price difference from the current price
-		float mid = math.round_to_mintick((array.get(sr_up_level, x) + array.get(sr_dn_level, x)) / 2)
-		rate = 100 * (mid - close) / close
-		// [Function] Draw comments
-		array.set(sr_labels, x + 1, label.new(x=bar_index + labelloc * ( x * 2 + 1), y=mid, text=str.tostring(mid) + '(' + str.tostring(rate, '#.##') + '%)', color=mid >= close ? color.red : color.lime, textcolor=mid >= close ? color.white : color.black, style=label.style_label_center))
-		//  [Function] Draw lines
-		array.set(sr_lines, x + 1, line.new(x1=bar_index, y1=mid, x2=bar_index - 1, y2=mid, extend=extend.both, color=mid >= close ? resistancecolor : supportcolor, style=Lstyle, width=linewidth))
 
 		// Draw the upper support position
 		upLevel = array.get(sr_up_level, x)
