@@ -1,5 +1,5 @@
 //@version=5
-indicator('Support Resistance - Dynamic v2', 'SR-Noodles', overlay=true)
+indicator('price action strategy', 'priceAction-Noodles', overlay=true)
 
 // 1. Parameter Settings
 
@@ -104,6 +104,7 @@ var sr_up_lines = array.new_line(11, na)
 var sr_down_lines = array.new_line(11, na)
 var sr_up_labels = array.new_label(11, na)
 var sr_down_labels = array.new_label(11, na)
+
 
 for x = 0 to array.size(sr_up_labels) > 0 ? array.size(sr_up_labels) - 1 : na by 1    
 	upRate = 100 * (label.get_y(array.get(sr_up_labels, x)) - close) / close
