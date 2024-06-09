@@ -1,5 +1,5 @@
 //@version=5
-indicator('price action strategy', 'priceAction-Noodles', overlay=true)
+strategy('price action strategy', 'priceAction-Noodles', overlay=true)
 
 // 1. Parameter Settings
 
@@ -175,3 +175,17 @@ if ph or pl
 		array.set(sr_down_lines, x + 1, line.new(x1=bar_index, y1=array.get(sr_dn_level, x), x2=bar_index - 1, y2=array.get(sr_dn_level, x), extend=extend.both, color=color.blue, style=line.style_dotted, width=2))
 		//  [Function] Draw comments
 		array.set(sr_down_labels, x + 1, label.new(x=bar_index + labelloc * ( x * 2 + 1), y=downLevel, text="High:" + str.tostring(downRate) + '(' + str.tostring(downRate, '#.##') + '%)', color=#e7b8f0, textcolor=downLevel >= close ? color.white : color.black, style=label.style_label_up))
+
+
+// 检查收盘价是否在 sr_up_lines 对应价格的上下 2.5% 范围内
+for x = 0 to array.size(sr_up_level) > 0 ? array.size(sr_up_level) - 1 : na by 1
+    upLevel = array.get(sr_up_level, x)
+    downLevel = array.get(sr_dn_level, x)
+    rangeHigh = upLevel * 1.025
+    rangeLow = upLevel * 0.975
+
+    if close >= rangeLow and close <= rangeHigh
+        // 设置买入单
+        strategy.entry("Buy", strategy.long, stop=na, limit=na)
+        // 设置止损在对应的 sr_down_lines 价格
+        strategy.exit("Sell", "Buy", stop=downLevel)
