@@ -187,5 +187,11 @@ for x = 0 to array.size(sr_up_level) > 0 ? array.size(sr_up_level) - 1 : na by 1
     if close >= rangeLow and close <= rangeHigh
         // 设置买入单
         strategy.entry("Buy", strategy.long, stop=na, limit=na)
+        
+        // 假设止盈设置为upLevel的1.05倍
+        takeProfit = upLevel * 1.05  
+        strategy.exit("Take Profit", "Buy", limit=takeProfit)
         // 设置止损在对应的 sr_down_lines 价格
         strategy.exit("Sell", "Buy", stop=downLevel)
+
+        log.error("entry at : {0}, take profit at : {1}, sell at {2}",close, takeProfit, downLevel)
