@@ -1,0 +1,22 @@
+// This Pine Script™ code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © wangyanchaoace
+
+//@version=5
+strategy("emaStrategyV1", overlay=true, initial_capital = 1000, default_qty_value = 100, default_qty_type = strategy.percent_of_equity)
+
+fastEma = ta.ema(close, 24)
+slowEma = ta.ema(close, 200)
+longCondition1 = ta.crossover(fastEma, slowEma)
+timePeriod = time >= timestamp(syminfo.timezone, 2020, 12, 15, 0, 0)
+notInTrade = strategy.position_size <= 0
+
+// 如果不根据notInTrade判断的话, 可能会出现slowEma和fastEma重新交叉之后, 更新了exit的价格, 影响当前在途的价格单
+if longCondition1 and timePeriod and notInTrade
+    stopLoss = low * 0.97
+    takeProfit = high * 1.12
+    strategy.entry('long', strategy.long)
+    strategy.exit('exit', 'long', stop = stopLoss, limit = takeProfit)
+    log.info("buy at price:{0}, stop at price:{1}, takeProfit at price:{2}", close, stopLoss, takeProfit)
+
+plot(fastEma, color = color.new(color.green, 0))
+plot(slowEma, color = color.new(color.red, 0))
