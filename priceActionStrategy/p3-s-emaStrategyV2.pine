@@ -10,16 +10,18 @@ slowPeriod = input(defval = 200, title = "Slow MA")
 fastEma = ta.ema(close, fastPeriod)
 fastSma = ta.sma(close, fastPeriod)
 slowEma = ta.ema(close, slowPeriod)
-plot(fastEma, color = color.blue)
-plot(slowEma, color = #1976c7)
-plot(fastSma, color = color.red)
+plot(fastEma, color = #10ff18)
+plot(slowEma, color = color.red)
+plot(fastSma, color = #117147)
 //  atr, average true range. 是近期每天价格波动(最高价-最低价)的平均值
 atr = ta.atr(14)
 
 longInBigPeriod = fastEma > slowEma
 longInSmallPeriod = fastEma > fastSma
+
+
 exitInBigPeriod = fastEma < slowEma
-// 是否要利用fastEma 和 fastSma , 毕竟小于 slowEma的时候已经太晚了
+// 是否要利用fastEma 和 fastSma , 毕竟小于 slowEma的时候已经太晚了 -> 一般走不到手动止损的场景, 一般都会命中入场设置的stopLoss价格
 exitInSmallPeriod = close < slowEma
 timePeriod = time >= timestamp(syminfo.timezone, 2020, 12, 15, 0, 0)
 inTrade = strategy.position_size > 0
@@ -27,12 +29,11 @@ notInTrade = strategy.position_size <= 0
 
 
 if timePeriod and longInBigPeriod and longInSmallPeriod and notInTrade
-// 看下strategy.entry("long", strategy.long, when=notInTrade)
     strategy.entry("long", strategy.long)
     stopLoss = close - atr * 3
     strategy.exit("exit", "long", stop = stopLoss)
 
-// 看下不设置该关闭是否有问题
+// 看下不设置该关闭是否有问题 -> 会有问题, 如果开始就是一段大的暴涨的话, 需要通过ema交汇来出场,否则可能就只有一个入场单没有出场单
 if exitInBigPeriod and exitInSmallPeriod and inTrade
     strategy.close(id = "long")
 bgcolor(notInTrade ? color.white : color.new(color.green, 90))
